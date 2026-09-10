@@ -48,6 +48,10 @@ def load_models():
 
     # Initialize TripoSR
     try:
+        import sys
+        for p in ['./TripoSR', '/content/TripoSR', os.path.expanduser('~/TripoSR')]:
+            if os.path.exists(p) and p not in sys.path:
+                sys.path.insert(0, p)
         from tsr.system import TSR
         model = TSR.from_pretrained(
             "stabilityai/TripoSR",
