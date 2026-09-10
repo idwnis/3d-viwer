@@ -81,7 +81,17 @@ export const ColabSettingsModal: React.FC<ColabSettingsModalProps> = ({
             <span>How to launch the Google Colab Backend in 2 minutes:</span>
           </p>
           <ol className="list-decimal list-inside space-y-1 text-slate-400">
-            <li>Open the provided notebook: <span className="font-mono text-slate-200">backend/3d_reconstruction_colab.ipynb</span> in Google Colab.</li>
+            <li>
+              Open notebook in Google Colab:
+              <a
+                href="https://colab.research.google.com/github/idwnis/3d-viwer/blob/main/backend/3d_reconstruction_colab.ipynb"
+                target="_blank"
+                rel="noreferrer"
+                className="ml-1 text-sky-400 hover:text-sky-300 underline font-medium inline-flex items-center space-x-1"
+              >
+                <span>Open in Colab</span>
+              </a>
+            </li>
             <li>Select <strong className="text-slate-200">Runtime → Change runtime type → T4 GPU</strong>.</li>
             <li>Click <strong className="text-slate-200">Runtime → Run all</strong>.</li>
             <li>Copy the generated Cloudflare tunnel URL (e.g. <span className="font-mono text-sky-400">https://xxxx.trycloudflare.com</span>) and paste below.</li>

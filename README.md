@@ -3,6 +3,9 @@
 > **University Final Project in Computer Engineering**  
 > *Cross-platform web application converting 2D images (.jpg, .png, .webp) into interactive, downloadable 3D models (.glb, .obj, .stl) running on any computer.*
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/idwnis/3d-viwer/blob/main/backend/3d_reconstruction_colab.ipynb)
+[![GitHub Pages Deployment](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=flat&logo=github)](https://idwnis.github.io/3d-viwer/)
+
 ---
 
 ## 🌟 Key Project Highlights
