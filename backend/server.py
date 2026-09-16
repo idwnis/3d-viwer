@@ -61,8 +61,17 @@ def load_models():
         if os.path.exists(p) and p not in sys.path:
             sys.path.insert(0, p)
 
-    # Compatibility layer for torchmcubes
+    # 1. Compatibility layer for rembg
     import types
+    try:
+        import rembg
+    except Exception:
+        rembg_mock = types.ModuleType("rembg")
+        rembg_mock.remove = lambda image, *args, **kwargs: image.convert("RGBA") if hasattr(image, "convert") else image
+        rembg_mock.new_session = lambda *args, **kwargs: None
+        sys.modules["rembg"] = rembg_mock
+
+    # 2. Compatibility layer for torchmcubes
     try:
         import torchmcubes
     except Exception:
