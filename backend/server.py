@@ -1,7 +1,7 @@
 """
-3D Vision Studio - Backend API Server (Stable Fast 3D / SF3D)
-FastAPI server for ultra-fast Single-Image to 3D Textured Model Generation.
-Generates crisp, UV-unwrapped .GLB meshes with normal maps in < 1 second.
+3D Vision Studio - Backend API Server (TripoSR - Direct Download)
+FastAPI server for fast Single-Image to 3D Textured Model Generation.
+100% Tokenless & Open: Direct weight download, zero Hugging Face authentication required.
 Compatible with Google Colab (T4 GPU) or local CUDA systems.
 """
 
@@ -9,8 +9,8 @@ import os
 import io
 import sys
 import time
-from contextlib import nullcontext
-from typing import Any
+import urllib.request
+from typing import Optional
 
 import numpy as np
 import torch
@@ -20,23 +20,13 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-# Ensure sub-modules are found if cloned locally or in subfolder
-sys.path.append(os.path.abspath("stable-fast-3d"))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "stable-fast-3d")))
-
-# Hugging Face Access Token for stabilityai/stable-fast-3d (gated weights)
-DEFAULT_HF_TOKEN = "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"
-hf_token = os.environ.get("HF_TOKEN", DEFAULT_HF_TOKEN)
-if hf_token:
-    try:
-        from huggingface_hub import login
-        login(token=hf_token)
-    except Exception as e:
-        print(f"[*] Hugging Face auth note: {e}")
+# Ensure TripoSR sub-modules can be imported if cloned in backend or subfolder
+sys.path.append(os.path.abspath("TripoSR"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "TripoSR")))
 
 app = FastAPI(
-    title="3D Vision Studio - Reconstruction API (Stable Fast 3D)",
-    description="Transforms 2D images into high-resolution textured 3D meshes using Stability AI SF3D",
+    title="3D Vision Studio - Reconstruction API (TripoSR)",
+    description="Transforms 2D images into 3D meshes using TripoSR. Direct download, zero Hugging Face login required.",
     version="3.0.0"
 )
 
@@ -53,48 +43,56 @@ device = "cuda:0" if torch.cuda.is_available() else ("mps" if torch.backends.mps
 model = None
 rembg_session = None
 
-# SF3D Camera & Condition parameters
-COND_WIDTH = 512
-COND_HEIGHT = 512
-COND_DISTANCE = 1.6
-COND_FOVY_DEG = 40
-BACKGROUND_COLOR = [0.5, 0.5, 0.5]
+# Local weights configuration
+WEIGHTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "checkpoints"))
+CONFIG_PATH = os.path.join(WEIGHTS_DIR, "config.yaml")
+MODEL_PATH = os.path.join(WEIGHTS_DIR, "model.ckpt")
 
-c2w_cond = None
-intrinsic = None
-intrinsic_normed_cond = None
+# Direct public download URLs (un-gated, no login/token required)
+DIRECT_CONFIG_URL = "https://huggingface.co/stabilityai/TripoSR/resolve/main/config.yaml"
+DIRECT_MODEL_URL = "https://huggingface.co/stabilityai/TripoSR/resolve/main/model.ckpt"
+
+
+def ensure_weights():
+    """Downloads model weights directly if not already present on disk."""
+    os.makedirs(WEIGHTS_DIR, exist_ok=True)
+
+    if not os.path.exists(CONFIG_PATH):
+        print(f"[*] Downloading TripoSR config directly from: {DIRECT_CONFIG_URL}...")
+        urllib.request.urlretrieve(DIRECT_CONFIG_URL, CONFIG_PATH)
+        print(f"[+] Saved config to {CONFIG_PATH}")
+
+    if not os.path.exists(MODEL_PATH):
+        print(f"[*] Downloading TripoSR weights directly (~1.68 GB, no token required)...")
+        urllib.request.urlretrieve(DIRECT_MODEL_URL, MODEL_PATH)
+        print(f"[+] Saved model checkpoint to {MODEL_PATH}")
 
 
 def load_models():
-    """Initializes the Stable Fast 3D pipeline and rembg session."""
-    global model, rembg_session, c2w_cond, intrinsic, intrinsic_normed_cond
-    print(f"[*] Initializing Stable Fast 3D (SF3D) pipeline on device: {device}...")
+    """Initializes the TripoSR pipeline from local checkpoint files."""
+    global model, rembg_session
+    print(f"[*] Initializing TripoSR on device: {device}...")
 
     try:
         import rembg
         rembg_session = rembg.new_session()
 
-        import sf3d.utils as sf3d_utils
-        from sf3d.system import SF3D
+        ensure_weights()
 
-        # Precompute camera matrices
-        c2w_cond = sf3d_utils.default_cond_c2w(COND_DISTANCE)
-        intrinsic, intrinsic_normed_cond = sf3d_utils.create_intrinsic_from_fov_deg(
-            COND_FOVY_DEG, COND_HEIGHT, COND_WIDTH
-        )
+        from tsr.system import TSR
 
-        model = SF3D.from_pretrained(
-            "stabilityai/stable-fast-3d",
+        model = TSR.from_pretrained(
+            WEIGHTS_DIR,
             config_name="config.yaml",
-            weight_name="model.safetensors",
-            token=hf_token,
+            weight_name="model.ckpt",
+            is_local=True
         )
-        model.eval()
-        model = model.to(device)
+        model.renderer.set_chunk_size(8192)
+        model.to(device)
 
-        print("[+] Stable Fast 3D (SF3D) model loaded successfully.")
+        print("[+] TripoSR model loaded successfully from local direct download.")
     except Exception as e:
-        print(f"[!] SF3D initialization failed: {e}")
+        print(f"[!] TripoSR initialization failed: {e}")
         model = None
 
 
@@ -103,61 +101,40 @@ def startup_event():
     load_models()
 
 
-def preprocess_image(input_image: Image.Image) -> Image.Image:
-    """Removes background, isolates foreground object, and pads into 512x512."""
+def preprocess_image(input_image: Image.Image, foreground_ratio: float = 0.85) -> Image.Image:
+    """Removes background, isolates foreground object, and normalizes into 512x512 with neutral gray."""
     import rembg
     global rembg_session
     if rembg_session is None:
         rembg_session = rembg.new_session()
 
-    # Remove background with rembg
-    img_rgba = rembg.remove(input_image, session=rembg_session)
+    # 1. Background removal via rembg
+    raw_rgb = input_image.convert("RGB")
+    img_rgba = rembg.remove(raw_rgb, session=rembg_session)
 
-    # Crop to object bounding box
+    # 2. Crop transparent bounding box
     bbox = img_rgba.getbbox()
     if bbox:
         img_rgba = img_rgba.crop(bbox)
 
-    # Pad foreground so object fits nicely with ~15% margin
+    # 3. Center foreground with margin
     w, h = img_rgba.size
     max_side = max(w, h)
-    target_box_size = int(max_side / 0.85)
+    target_box_size = int(max_side / foreground_ratio)
     padded = Image.new("RGBA", (target_box_size, target_box_size), (0, 0, 0, 0))
     paste_x = (target_box_size - w) // 2
     paste_y = (target_box_size - h) // 2
     padded.paste(img_rgba, (paste_x, paste_y))
 
-    return padded.resize((COND_WIDTH, COND_HEIGHT), Image.Resampling.LANCZOS)
-
-
-def create_batch(input_image: Image.Image) -> dict[str, Any]:
-    """Prepares conditioning tensors for SF3D feedforward pass."""
-    img_cond = (
-        torch.from_numpy(
-            np.asarray(input_image.resize((COND_WIDTH, COND_HEIGHT))).astype(np.float32)
-            / 255.0
-        )
-        .float()
-        .clip(0, 1)
-    )
-    mask_cond = img_cond[:, :, -1:]
-    rgb_cond = torch.lerp(
-        torch.tensor(BACKGROUND_COLOR)[None, None, :], img_cond[:, :, :3], mask_cond
-    )
-
-    batch_elem = {
-        "rgb_cond": rgb_cond,
-        "mask_cond": mask_cond,
-        "c2w_cond": c2w_cond.unsqueeze(0),
-        "intrinsic_cond": intrinsic.unsqueeze(0),
-        "intrinsic_normed_cond": intrinsic_normed_cond.unsqueeze(0),
-    }
-    return {k: v.unsqueeze(0) for k, v in batch_elem.items()}
+    # 4. Fill background with neutral gray (TripoSR requirement)
+    arr = np.array(padded.resize((512, 512), Image.Resampling.LANCZOS)).astype(np.float32) / 255.0
+    rgb = arr[:, :, :3] * arr[:, :, 3:4] + (1.0 - arr[:, :, 3:4]) * 0.5
+    return Image.fromarray((rgb * 255.0).astype(np.uint8))
 
 
 @app.get("/health")
 def health_check():
-    """Returns GPU information, model status, and VRAM telemetry."""
+    """Returns GPU information, model readiness, and VRAM telemetry."""
     gpu_name = None
     vram_alloc = 0.0
     vram_total = 0.0
@@ -169,7 +146,7 @@ def health_check():
 
     return {
         "status": "ok",
-        "model": "Stability AI Stable Fast 3D (SF3D)",
+        "model": "TripoSR (Direct Download, Tokenless)",
         "device": device,
         "gpu_name": gpu_name or "CPU",
         "vram_allocated_gb": round(vram_alloc, 2),
@@ -182,43 +159,31 @@ def health_check():
 @app.post("/api/generate")
 async def generate_3d(image: UploadFile = File(...)):
     """
-    Accepts an input image and returns a textured, UV-unwrapped .GLB 3D mesh.
+    Accepts an input image and returns a textured .GLB 3D mesh.
     """
     if model is None:
         raise HTTPException(
             status_code=503,
-            detail="SF3D model is not loaded. Please verify GPU runtime and Hugging Face token."
+            detail="TripoSR model is not loaded. Please verify GPU runtime and checkpoint files."
         )
 
     try:
         # 1. Read input image
         contents = await image.read()
-        raw_img = Image.open(io.BytesIO(contents)).convert("RGBA")
+        raw_img = Image.open(io.BytesIO(contents))
 
-        # 2. Preprocessing: background removal + center scaling
+        # 2. Preprocessing: background removal + centered framing
         proc_img = preprocess_image(raw_img)
 
-        # 3. Prepare conditioning batch
-        model_batch = create_batch(proc_img)
-        model_batch = {k: v.to(device) for k, v in model_batch.items()}
-
-        # 4. Neural 3D synthesis + UV texture baking (< 1s)
+        # 3. Neural 3D synthesis via TripoSR (~2–3s)
         with torch.no_grad():
-            with torch.autocast(
-                device_type="cuda" if "cuda" in device else "cpu",
-                dtype=torch.bfloat16
-            ) if "cuda" in device else nullcontext():
-                trimesh_mesh, _ = model.generate_mesh(
-                    model_batch,
-                    texture_size=1024,
-                    remesh_option="none",
-                    vertex_count=-1
-                )
-                trimesh_mesh = trimesh_mesh[0]
+            scene_codes = model([proc_img], device=device)
+            meshes = model.extract_mesh(scene_codes, has_vertex_color=True, resolution=256)
+            mesh = meshes[0]
 
-        # 5. Export to binary GLB with full normals and UV textures
+        # 4. Export to standard binary GLB
         glb_bytes_io = io.BytesIO()
-        trimesh_mesh.export(glb_bytes_io, file_type="glb", include_normals=True)
+        mesh.export(glb_bytes_io, file_type="glb")
         glb_bytes = glb_bytes_io.getvalue()
 
         return Response(
@@ -228,11 +193,12 @@ async def generate_3d(image: UploadFile = File(...)):
         )
 
     except Exception as err:
-        print(f"[!] Error in SF3D generation pipeline: {err}")
+        print(f"[!] Error in TripoSR generation pipeline: {err}")
         raise HTTPException(status_code=500, detail=str(err))
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 

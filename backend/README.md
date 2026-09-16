@@ -1,6 +1,9 @@
-# 3D Vision Studio - AI Backend (Stability AI Stable Fast 3D / SF3D)
+# 3D Vision Studio - AI Backend (TripoSR - 100% Direct Download)
 
-This backend powers the 360-degree single-image 3D reconstruction using **Stability AI Stable Fast 3D (SF3D)** and **rembg**. It produces UV-unwrapped textured 3D meshes with normal maps in **< 1 second** on a T4 GPU.
+This backend powers the 360-degree single-image 3D reconstruction using **TripoSR** and **rembg**.
+It generates complete textured `.glb` meshes in ~2–3 seconds on a T4 GPU.
+
+**🌟 Key Feature**: 100% Tokenless & Open. Model weights are downloaded directly via standard public HTTP/wget links. **No Hugging Face account, no tokens, and no login required.**
 
 ---
 
@@ -13,7 +16,7 @@ This backend powers the 360-degree single-image 3D reconstruction using **Stabil
    - Under *Hardware accelerator*, select **T4 GPU** → Click **Save**.
 4. Run all cells:
    - Click **Runtime** → **Run all**.
-   - *(Note: Ensure you have accepted the license at [huggingface.co/stabilityai/stable-fast-3d](https://huggingface.co/stabilityai/stable-fast-3d). The notebook includes a pre-configured Hugging Face token or supports Colab Secrets).*
+   - *(Zero configuration needed — all model weights download directly in seconds without any login).*
 5. Once Cell 4 runs, you will see output like:
    ```text
    ============================================================
@@ -32,14 +35,13 @@ If you have a local PC with an NVIDIA GPU (CUDA):
 
 ```bash
 cd backend
-git clone https://github.com/Stability-AI/stable-fast-3d.git
-pip install -r stable-fast-3d/requirements.txt
-pip install ./stable-fast-3d/uv_unwrapper ./stable-fast-3d/texture_baker
+git clone https://github.com/VAST-AI-Research/TripoSR.git
+pip install -r TripoSR/requirements.txt
+pip install git+https://github.com/tatsy/torchmcubes.git PyMCubes
 pip install -r requirements.txt
-export HF_TOKEN="your_huggingface_token"
 python server.py
 ```
-The server will run on `http://localhost:8000`.
+The server will run on `http://localhost:8000`. Weights will automatically download directly on first launch if not already in `backend/checkpoints/`.
 
 ---
 
