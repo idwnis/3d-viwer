@@ -42,22 +42,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-studio-800 border border-studio-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" dir="rtl">
+      <div className="bg-studio-800 border border-studio-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative text-right">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-studio-700 transition"
+          className="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-studio-700 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-3 mb-5">
+        <div className="flex items-center space-x-3 space-x-reverse mb-5">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
             <Download className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Save & Export 3D Model</h2>
-            <p className="text-xs text-slate-400">Select standard format for PC, CAD, or 3D Printing</p>
+            <h2 className="text-lg font-bold text-white">ذخیره و دریافت فایل مدل سه‌بعدی</h2>
+            <p className="text-xs text-slate-400">انتخاب فرمت استاندارد برای کامپیوتر، نرم‌افزارهای CAD یا پرینتر سه‌بعدی</p>
           </div>
         </div>
 
@@ -66,21 +66,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <button
             onClick={() => handleExport('glb')}
             disabled={!!downloadingFormat}
-            className="w-full text-left p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-sky-500/50 transition flex items-center justify-between group"
+            className="w-full text-right p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-sky-500/50 transition flex items-center justify-between group"
           >
-            <div className="flex items-start space-x-3.5">
+            <div className="flex items-start space-x-3.5 space-x-reverse">
               <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-0.5">
                 <Box className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold text-sm text-white">glTF Binary (.GLB)</span>
-                  <span className="text-[10px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">
-                    RECOMMENDED
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <span className="font-semibold text-sm text-white">glTF باینری (.GLB)</span>
+                  <span className="text-[10px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-bold">
+                    پیشنهادی
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Includes full textures, materials, and geometry. Works in Three.js, Unity, Unreal Engine, & AR viewers.
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  شامل رنگ‌ها، بافت، متریال و هندسه کامل. مناسب Three.js، یونیتی، آنریل انجین و AR.
                 </p>
               </div>
             </div>
@@ -97,21 +97,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <button
             onClick={() => handleExport('obj')}
             disabled={!!downloadingFormat}
-            className="w-full text-left p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-sky-500/50 transition flex items-center justify-between group"
+            className="w-full text-right p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-sky-500/50 transition flex items-center justify-between group"
           >
-            <div className="flex items-start space-x-3.5">
+            <div className="flex items-start space-x-3.5 space-x-reverse">
               <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 mt-0.5">
                 <Layers className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold text-sm text-white">Wavefront (.OBJ)</span>
-                  <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-mono">
-                    CAD / BLENDER
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <span className="font-semibold text-sm text-white">فرمت ویوفرانت (.OBJ)</span>
+                  <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">
+                    CAD / بلندر
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Universal raw mesh format supported by Blender, Maya, 3ds Max, and game engines.
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  فرمت استاندارد صنعتی برای نرم‌افزارهای Blender، Maya، 3ds Max و موتورهای بازی.
                 </p>
               </div>
             </div>
@@ -128,21 +128,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <button
             onClick={() => handleExport('stl')}
             disabled={!!downloadingFormat}
-            className="w-full text-left p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-emerald-500/50 transition flex items-center justify-between group"
+            className="w-full text-right p-4 rounded-xl border border-studio-700 bg-studio-900/60 hover:bg-studio-700/50 hover:border-emerald-500/50 transition flex items-center justify-between group"
           >
-            <div className="flex items-start space-x-3.5">
+            <div className="flex items-start space-x-3.5 space-x-reverse">
               <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mt-0.5">
                 <Printer className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold text-sm text-white">Stereolithography (.STL)</span>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
-                    3D PRINTING
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <span className="font-semibold text-sm text-white">استریولیتوگرافی (.STL)</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
+                    پرینتر سه‌بعدی
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Industry standard format for 3D slicing software (Cura, PrusaSlicer, Bambu Studio) and additive manufacturing.
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  فرمت ساختار صلب برای اسلایسرهای پرینت سه‌بعدی (Cura، PrusaSlicer، Bambu Studio).
                 </p>
               </div>
             </div>
@@ -161,7 +161,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-xs font-semibold bg-studio-700 hover:bg-studio-600 text-slate-200 transition"
           >
-            Done
+            بستن پنجره
           </button>
         </div>
       </div>

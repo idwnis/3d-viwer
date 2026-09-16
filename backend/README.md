@@ -1,54 +1,52 @@
-# 3D Vision Studio - AI Backend (TripoSR - 100% Direct Download)
+# 3D Vision Studio - AI Backend (OpenAI Shap-E)
 
-This backend powers the 360-degree single-image 3D reconstruction using **TripoSR** and **rembg**.
-It generates complete textured `.glb` meshes in ~2–3 seconds on a T4 GPU.
+این سرور با استفاده از مدل پیشرفته **OpenAI Shap-E** (`openai/shap-e-img2img`) تصویر دوبعدی ورودی را به یک مدل کامل سه‌بعدی ۳۶۰ درجه تبدیل کرده و آن را در قالب استاندارد `.glb` یا `.obj` تولید می‌کند.
 
-**🌟 Key Feature**: 100% Tokenless & Open. Model weights are downloaded directly via standard public HTTP/wget links. **No Hugging Face account, no tokens, and no login required.**
+## ویژگی‌های کلیدی
+- **بدون نیاز به توکن اختصاصی یا تایید دسترسی**: مدل Shap-E به صورت عمومی و باز در دسترس است و نیازی به هیچ توکن محرمانه‌ای ندارد.
+- **بدون وابستگی به C++ / CUDA Custom Kernels**: اجرای آسان روی سرورهای استاندارد و Google Colab بدون خطای کامپایل.
+- **خروجی مستقیم سه‌بعدی**: تولید ساختار سه‌بعدی و تبدیل خودکار به فایل `.glb` با استفاده از کتابخانه `trimesh`.
 
 ---
 
-## 🚀 How to Run in Google Colab (Free T4 GPU)
+## 🚀 راهنمای اجرای سرور در Google Colab (کارت گرافیک رایگان T4)
 
-1. Open [Google Colab](https://colab.research.google.com/).
-2. Click **Upload** and upload the file: `backend/3d_reconstruction_colab.ipynb`.
-3. Set the hardware accelerator to GPU:
-   - Click **Runtime** → **Change runtime type**.
-   - Under *Hardware accelerator*, select **T4 GPU** → Click **Save**.
-4. Run all cells:
-   - Click **Runtime** → **Run all**.
-   - *(Zero configuration needed — all model weights download directly in seconds without any login).*
-5. Once Cell 4 runs, you will see output like:
+1. به سایت [Google Colab](https://colab.research.google.com/) بروید.
+2. از منوی File گزینه **Upload notebook** را زده و فایل `backend/3d_reconstruction_colab.ipynb` را آپلود کنید.
+3. کارت گرافیک را فعال کنید:
+   - از منوی بالا: **Runtime** ← **Change runtime type**
+   - سخت‌افزار را روی **T4 GPU** تنظیم کنید و Save را بزنید.
+4. همه سلول‌ها را اجرا کنید:
+   - از منوی بالا: **Runtime** ← **Run all**
+5. پس از اجرای سلول آخر، لینکی مشابه زیر نمایش داده می‌شود:
    ```text
    ============================================================
-   🎉 SUCCESS! YOUR COLAB BACKEND IS ONLINE!
-   👉 COPY THIS URL INTO YOUR WEB APP:
+   🎉 سرور گوگل کولب با موفقیت راه‌اندازی شد!
+   👉 این آدرس را کپی کرده و در برنامه فرانت‌اند وارد کنید:
    https://random-words-here.trycloudflare.com
    ============================================================
    ```
-6. Copy that HTTPS URL, open your **3D Vision Studio** web application, click the **Colab Settings** icon, paste the URL, and click **Connect**.
+6. این آدرس را کپی کرده و در پنجره «تنظیمات سرور» برنامه فرانت‌اند وارد نمایید.
 
 ---
 
-## 🛠️ Running Locally (If you have an NVIDIA GPU)
+## 🛠️ اجرای سرور روی سیستم محلی (Local Server)
 
-If you have a local PC with an NVIDIA GPU (CUDA):
+اگر کارت گرافیک NVIDIA یا پردازنده مناسب دارید:
 
 ```bash
 cd backend
-git clone https://github.com/VAST-AI-Research/TripoSR.git
-pip install -r TripoSR/requirements.txt
-pip install git+https://github.com/tatsy/torchmcubes.git PyMCubes
 pip install -r requirements.txt
 python server.py
 ```
-The server will run on `http://localhost:8000`. Weights will automatically download directly on first launch if not already in `backend/checkpoints/`.
+سرور به صورت پیش‌فرض روی آدرس `http://localhost:8000` اجرا خواهد شد.
 
 ---
 
-## 📡 API Endpoints
+## 📡 مشخصات API سرور
 
 - `GET /health`
-  - Returns GPU device name, VRAM status, and model readiness.
+  - وضعیت سلامت سرور، کارت گرافیک، حافظه VRAM و مدل فعال (OpenAI Shap-E) را برمی‌گرداند.
 - `POST /api/generate`
-  - Body: Multipart Form with `image` file (`.png` or `.jpg`).
-  - Returns: Binary `.glb` 3D model file.
+  - ورودی: فایل تصویر در قالب فرم چندبخشی (`multipart/form-data`) با کلید `image`.
+  - خروجی: فایل سه‌بعدی باینری `.glb`.

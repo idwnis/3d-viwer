@@ -15,8 +15,8 @@ function createSvgDataUrl(svgString: string): string {
 export const SAMPLE_IMAGES: SampleImage[] = [
   {
     id: 'chair',
-    name: 'Modern Chair',
-    category: 'Furniture',
+    name: 'صندلی مدرن',
+    category: 'مبلمان و دکوراسیون',
     dataUrl: createSvgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
         <rect width="400" height="400" fill="#1e293b"/>
@@ -40,8 +40,8 @@ export const SAMPLE_IMAGES: SampleImage[] = [
   },
   {
     id: 'sneaker',
-    name: 'Sneaker Shoe',
-    category: 'Fashion',
+    name: 'کفش ورزشی',
+    category: 'پوشاک و مد',
     dataUrl: createSvgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
         <rect width="400" height="400" fill="#0f172a"/>
@@ -65,8 +65,8 @@ export const SAMPLE_IMAGES: SampleImage[] = [
   },
   {
     id: 'vase',
-    name: 'Ceramic Vase',
-    category: 'Art',
+    name: 'گلدان سرامیکی',
+    category: 'صنایع دستی و هنر',
     dataUrl: createSvgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
         <rect width="400" height="400" fill="#18181b"/>
@@ -89,8 +89,8 @@ export const SAMPLE_IMAGES: SampleImage[] = [
   },
   {
     id: 'robot',
-    name: 'CE Robot Shield',
-    category: 'Engineering',
+    name: 'نشان رباتیک',
+    category: 'طراحی مهندسی',
     dataUrl: createSvgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
         <rect width="400" height="400" fill="#090d16"/>
