@@ -61,6 +61,28 @@ def load_models():
         if os.path.exists(p) and p not in sys.path:
             sys.path.insert(0, p)
 
+    # Compatibility layer for torchmcubes
+    import types
+    try:
+        import torchmcubes
+    except Exception:
+        try:
+            import mcubes
+            def mc_compat(volume, thresh):
+                vol = volume.detach().cpu().numpy() if isinstance(volume, torch.Tensor) else volume
+                v, f = mcubes.marching_cubes(vol, float(thresh))
+                return torch.from_numpy(v.copy()).float(), torch.from_numpy(f.copy()).long()
+        except Exception:
+            from skimage.measure import marching_cubes as _sk_mc
+            def mc_compat(volume, thresh):
+                vol = volume.detach().cpu().numpy() if isinstance(volume, torch.Tensor) else volume
+                v, f, _, _ = _sk_mc(vol, float(thresh))
+                return torch.from_numpy(v.copy()).float(), torch.from_numpy(f.copy()).long()
+
+        tm_mock = types.ModuleType("torchmcubes")
+        tm_mock.marching_cubes = mc_compat
+        sys.modules["torchmcubes"] = tm_mock
+
     try:
         from tsr.system import TSR
 
