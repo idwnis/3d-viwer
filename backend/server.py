@@ -16,7 +16,7 @@ from fastapi.responses import Response
 
 app = FastAPI(
     title="3D Vision Studio - Reconstruction API",
-    description="Transforms 2D images into textured 3D meshes using TripoSR & rembg",
+    description="Transforms 2D images into textured 3D meshes using TripoSR",
     version="1.0.0"
 )
 
@@ -31,38 +31,69 @@ app.add_middleware(
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 model = None
-rembg_session = None
+active_model_repo = "idwnis/TripoSR-bucket"
+
+def prepare_image(pil_img: Image.Image) -> Image.Image:
+    """Prepares image for TripoSR: ensures RGBA format, removes solid backgrounds, and centers foreground."""
+    from tsr.utils import resize_foreground
+
+    if pil_img.mode == 'RGBA':
+        img_rgba = pil_img
+    else:
+        img_rgba = pil_img.convert("RGBA")
+        # Auto-remove pure white / solid background if present
+        data = np.array(img_rgba)
+        r, g, b = data[:, :, 0], data[:, :, 1], data[:, :, 2]
+        white_mask = (r > 240) & (g > 240) & (b > 240)
+        data[:, :, 3][white_mask] = 0
+        img_rgba = Image.fromarray(data)
+
+    return resize_foreground(img_rgba, ratio=0.85)
 
 def load_models():
-    """Initializes the background removal session and TripoSR model."""
-    global model, rembg_session
+    """Initializes the TripoSR model using idwnis/TripoSR-bucket."""
+    global model, active_model_repo
     print(f"[*] Initializing models on device: {device}...")
 
-    # Initialize rembg for object isolation
-    try:
-        import rembg
-        rembg_session = rembg.new_session("u2net")
-        print("[+] Background removal model loaded.")
-    except Exception as e:
-        print(f"[!] Warning: rembg could not be loaded: {e}")
+    # Ensure TripoSR repo is in sys.path
+    import sys
+    for p in ['./TripoSR', '/content/TripoSR', os.path.expanduser('~/TripoSR')]:
+        if os.path.exists(p) and p not in sys.path:
+            sys.path.insert(0, p)
 
-    # Initialize TripoSR
     try:
-        import sys
-        for p in ['./TripoSR', '/content/TripoSR', os.path.expanduser('~/TripoSR')]:
-            if os.path.exists(p) and p not in sys.path:
-                sys.path.insert(0, p)
         from tsr.system import TSR
-        model = TSR.from_pretrained(
-            "stabilityai/TripoSR",
-            config_name="config.yaml",
-            weight_name="model.ckpt",
-        )
+
+        target_repo = "idwnis/TripoSR-bucket"
+        fallback_repo = "stabilityai/TripoSR"
+        hf_token = os.environ.get("HF_TOKEN", None)
+
+        try:
+            print(f"[*] Loading model from '{target_repo}'...")
+            model = TSR.from_pretrained(
+                target_repo,
+                config_name="config.yaml",
+                weight_name="model.ckpt",
+                token=hf_token
+            )
+            active_model_repo = target_repo
+            print(f"[+] Loaded model from '{target_repo}' successfully.")
+        except Exception as err:
+            print(f"[!] Warning: Could not load from '{target_repo}': {err}")
+            print(f"[*] Falling back to '{fallback_repo}'...")
+            model = TSR.from_pretrained(
+                fallback_repo,
+                config_name="config.yaml",
+                weight_name="model.ckpt",
+            )
+            active_model_repo = fallback_repo
+            print(f"[+] Loaded fallback model from '{fallback_repo}'.")
+
         model.renderer.set_chunk_size(8192)
         model.to(device)
-        print("[+] TripoSR 3D reconstruction model loaded successfully.")
+        print(f"[+] TripoSR ({active_model_repo}) initialized on {device}.")
     except Exception as e:
-        print(f"[!] TripoSR direct import failed: {e}. Attempting fallback...")
+        print(f"[!] TripoSR initialization failed: {e}")
         model = None
 
 @app.on_event("startup")
@@ -88,6 +119,7 @@ def health_check():
         "vram_allocated_gb": round(vram_alloc, 2),
         "vram_total_gb": round(vram_total, 2),
         "model_ready": model is not None,
+        "model_repo": active_model_repo,
         "timestamp": time.time()
     }
 
@@ -105,21 +137,12 @@ async def generate_3d(image: UploadFile = File(...)):
     try:
         # 1. Read input image
         contents = await image.read()
-        pil_img = Image.open(io.BytesIO(contents)).convert("RGB")
+        pil_img = Image.open(io.BytesIO(contents))
 
-        # 2. Remove background to isolate object
-        if rembg_session is not None:
-            import rembg
-            input_rgba = rembg.remove(pil_img, session=rembg_session)
-        else:
-            input_rgba = pil_img.convert("RGBA")
+        # 2. Preprocess and center foreground
+        foreground = prepare_image(pil_img)
 
-        # 3. Preprocess for TripoSR
-        # Resize and center object
-        from tsr.utils import remove_background, resize_foreground
-        foreground = resize_foreground(input_rgba, ratio=0.85)
-
-        # 4. Neural 3D synthesis
+        # 3. Neural 3D synthesis
         with torch.no_grad():
             scene_codes = model([foreground], device=device)
             # Extract mesh via marching cubes
@@ -127,7 +150,7 @@ async def generate_3d(image: UploadFile = File(...)):
 
         mesh = meshes[0]
 
-        # 5. Export to GLB in-memory
+        # 4. Export to GLB in-memory
         glb_bytes_io = io.BytesIO()
         mesh.export(glb_bytes_io, file_type="glb")
         glb_bytes = glb_bytes_io.getvalue()
