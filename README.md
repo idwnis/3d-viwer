@@ -14,7 +14,7 @@
    - Built as a modern, responsive **Web Application** (React, TypeScript, Three.js, Tailwind CSS).
    - Runs smoothly on Windows, macOS, Linux, ChromeOS, and mobile devices in any modern browser (Chrome, Edge, Safari, Firefox).
 2. **Dual-Engine Architecture (Defense Resilience)**:
-   - **Engine 1: Cloud/Colab GPU (360° AI Mesh)**: Connects to a free Google Colab T4 GPU running **TripoSR** and **rembg** to generate complete 360-degree textured `.glb` meshes in ~3–5 seconds.
+   - **Engine 1: Cloud/Colab GPU (360° AI Mesh)**: Connects to a free Google Colab T4 GPU running **Stability AI Stable Fast 3D (SF3D)** and **rembg** to generate complete 360-degree textured `.glb` meshes with UV unwrapping and normal maps in **< 1 second**.
    - **Engine 2: Universal CPU Offline Fallback**: In-browser depth-to-mesh reconstruction running in pure WebGL/JavaScript. Guarantees your live project defense will **never fail** even if offline or disconnected from Colab.
 3. **Interactive 3D Studio & Geometry Telemetry**:
    - **OrbitControls**: 360° rotate, pan, and zoom.
@@ -47,7 +47,7 @@
 +------------------------+                     +--------------------+
 |  GOOGLE COLAB (T4 GPU) |                     |  Heightfield Mesh  |
 |  FastAPI + Cloudflared |                     |  Delaunay Surface  |
-|  TripoSR + rembg       |                     +--------------------+
+|  SF3D + rembg          |                     +--------------------+
 |  Returns: .GLB binary  |                               |
 +------------------------+                               |
           |                                              |
